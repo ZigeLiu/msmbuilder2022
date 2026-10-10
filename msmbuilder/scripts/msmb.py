@@ -10,12 +10,7 @@ from ..version import version
 # with entry point msmbuilder.commands
 from importlib.metadata import entry_points
 
-try:
-    _command_eps = entry_points(group="msmbuilder.commands")
-except TypeError:  # Python < 3.10
-    _command_eps = entry_points().get("msmbuilder.commands", [])
-
-for ep in _command_eps:
+for ep in entry_points(group="msmbuilder.commands"):
     external_command = ep.load()
     # Some groups start with numbers for ordering
     # Some start with descriptions e.g. "MSM"

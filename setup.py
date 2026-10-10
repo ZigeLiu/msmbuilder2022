@@ -72,7 +72,6 @@ Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS
 Programming Language :: Python :: 3
-Programming Language :: Python :: 3.9
 Programming Language :: Python :: 3.10
 Programming Language :: Python :: 3.11
 Programming Language :: Python :: 3.12
@@ -236,7 +235,7 @@ setup(name='msmbuilder2022',
       ],
       entry_points={'console_scripts':
                         ['msmb = msmbuilder.scripts.msmb:main']},
-      python_requires='>=3.9',
+      python_requires='>=3.10',
       zip_safe=False,
       ext_modules=extensions,
       cmdclass={'build_ext': build_ext})
