@@ -1,12 +1,16 @@
-# this file gets nose to find the tests that appear in the cython module
+# Collect the tests that are defined in the cython module test_cyblas
+import pytest
+
 from msmbuilder.tests import test_cyblas
 
+CYBLAS_TESTS = sorted(name for name in dir(test_cyblas)
+                      if name.startswith('test'))
 
-def test():
-    count = 0
-    for name in dir(test_cyblas):
-        if name.startswith('test'):
-            count += 1
-            yield getattr(test_cyblas, name)
-    if count == 0:
-        assert False
+
+def test_cyblas_tests_found():
+    assert len(CYBLAS_TESTS) > 0
+
+
+@pytest.mark.parametrize("name", CYBLAS_TESTS)
+def test_cyblas_function(name):
+    getattr(test_cyblas, name)()

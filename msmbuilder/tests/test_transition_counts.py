@@ -1,5 +1,4 @@
 import numpy as np
-from six import PY3
 
 from msmbuilder.msm import _transition_counts
 
@@ -58,11 +57,6 @@ def test_nan_and_none():
     c, m = _transition_counts([[np.nan]])
     assert m == {}
     np.testing.assert_array_equal(c, np.zeros((0, 0)))
-
-    if not PY3:
-        c, m = _transition_counts([[None, None]])
-        assert m == {}
-        np.testing.assert_array_equal(c, np.zeros((0, 0)))
 
 
 def test_lag_time_norm():

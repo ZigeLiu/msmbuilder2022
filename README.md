@@ -1,21 +1,34 @@
 msmbuilder2022
 ==========
-msmbuilder2022 is based on msmbuilder-3.8.0
+msmbuilder2022 is based on msmbuilder-3.8.0. msmbuilder2022 is developed and maintained by Xuhui Huang's group at University of Wisconsin-Madison. Mr. Bojun Liu is the main contact for msmbuilder2022.
 
 home: https://github.com/msmbuilder/msmbuilder
 
+
 Installation
 ------------
+### Recent note:
 
-The preferred installation mechanism for `msmbuilder2022` is with `conda`:
+Now `msmbuilder2022` is suggested to be installed with a local clone:
+
+```bash
+git clone https://github.com/msmbuilder/msmbuilder2022.git
+```
+
+```bash
+python -m pip install ./msmbuilder2022
+```
+
+We will enable `pip install` from  `pypi` in our next formal release soon!
+
+--------------------------------
+
+The old installation mechanism for `msmbuilder2022` is with `conda`: (only for Python version below 3.10)
 
 ```bash
 $ conda install -c conda-forge testmsm
 ```
 
-Now, the intallation package name is called testmsm.
-
-In the future, msmbuilder2022 conda-forge package will be available.
 
 MSMBuilder
 ==========

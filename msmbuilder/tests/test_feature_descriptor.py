@@ -8,16 +8,18 @@ from mdtraj.testing import eq
 from scipy.stats import vonmises as vm
 import itertools
 import inspect
+import pytest
 # numpy.testing.decorators removed in numpy >= 1.18
-try:
-    from numpy.testing.decorators import skipif
-except ImportError:
-    from numpy.testing._private.decorators import skipif
+# try:
+    # from numpy.testing.decorators import skipif
+# except ImportError:
+    # from numpy.testing._private.decorators import skipif
 
 from msmbuilder.example_datasets import MinimalFsPeptide
 from msmbuilder.feature_selection import FeatureSelector
 from msmbuilder.featurizer import DihedralFeaturizer, AlphaAngleFeaturizer, \
-    KappaAngleFeaturizer, ContactFeaturizer, VonMisesFeaturizer,AtomPairsFeaturizer
+    KappaAngleFeaturizer, SASAFeaturizer, ContactFeaturizer, \
+    VonMisesFeaturizer, AtomPairsFeaturizer
 
 trajectories = MinimalFsPeptide().get_cached().trajectories
 top = trajectories[0].topology
@@ -144,6 +146,38 @@ def test_KappaFeaturizer_describe_features():
         assert (features[0][:, f_index] == feature_value.flatten()).all()
 
 
+def test_SASAFeaturizer_describe_features_residue():
+    feat = SASAFeaturizer(mode='residue')
+    rnd_traj = np.random.randint(len(trajectories))
+    features = feat.transform([trajectories[rnd_traj]])
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+
+    for f in range(25):
+        f_index = np.random.choice(len(df))
+
+        resids_inds = df.iloc[f_index].resids
+
+        feature_value = md.geometry.sasa.shrake_rupley(trajectories[rnd_traj], mode='residue')
+
+        assert (features[0][:, f_index] == feature_value[:, resids_inds].flatten()).all()
+
+
+def test_SASAFeaturizer_describe_features_atom():
+    feat = SASAFeaturizer(mode='atom')
+    rnd_traj = np.random.randint(len(trajectories))
+    features = feat.transform([trajectories[rnd_traj]])
+    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+
+    for f in range(25):
+        f_index = np.random.choice(len(df))
+
+        atom_inds = df.iloc[f_index].atominds
+
+        feature_value = md.geometry.sasa.shrake_rupley(trajectories[rnd_traj], mode='atom')
+
+        assert (features[0][:, f_index] == feature_value[:, atom_inds].flatten()).all()
+
+
 def test_VonMisesFeaturizer_describe_features():
     feat = VonMisesFeaturizer()
     rnd_traj = np.random.randint(len(trajectories))
@@ -181,7 +215,8 @@ def test_ContactFeaturizer_describe_features():
                                                scheme=scheme)
         assert (features[0][:, f_index] == feature_value.flatten()).all()
 
-@skipif(True)
+# @skipif(True)
+@pytest.mark.skipif(True,reason='')
 def test_soft_min_ContactFeaturizer_describe_features():
     scheme = np.random.choice(['closest','closest-heavy'])
     soft_min = True

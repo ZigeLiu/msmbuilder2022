@@ -9,7 +9,6 @@
 
 from __future__ import absolute_import, print_function, division
 import numpy as np
-import six
 import scipy.spatial.distance
 import warnings
 from msmbuilder import libdistance
@@ -48,7 +47,7 @@ POOLING_FUNCTIONS = {
 
 
 def pdist(X, metric='euclidean'):
-    if isinstance(metric, six.string_types):
+    if isinstance(metric, str):
         return libdistance.pdist(X, metric)
 
     n = len(X)
@@ -59,7 +58,7 @@ def pdist(X, metric='euclidean'):
 
 
 def cdist(XA, XB, metric='euclidean'):
-    if isinstance(metric, six.string_types):
+    if isinstance(metric, str):
         return libdistance.cdist(XA, XB, metric)
 
     nA, nB = len(XA), len(XB)
@@ -254,7 +253,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 raise ValueError("linkage {} is not supported".format(pfunc_name))
 
         pooled_distances = np.empty(len(X))
-        pooled_distances.fill(np.infty)
+        pooled_distances.fill(np.inf)
         labels = np.zeros(len(X), dtype=int)
 
         for i in range(self.n_clusters):

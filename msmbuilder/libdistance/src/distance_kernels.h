@@ -191,27 +191,39 @@ hamming_distance_float(const float *u, const float *v, npy_intp n)
 static NPY_INLINE double
 jaccard_distance_double(const double *u, const double *v, npy_intp n)
 {
+    /* Same as scipy.spatial.distance.jaccard (SciPy >= 1.2): inputs are
+       treated as boolean (nonzero is true), and two all-zero vectors have
+       distance 0. */
     double denom = 0.0, num = 0.0;
     npy_intp i;
+    int a, b;
 
     for (i = 0; i < n; i++) {
-        num += (u[i] != v[i]) & ((u[i] != 0.0) | (v[i] != 0.0));
-        denom += (u[i] != 0.0) | (v[i] != 0.0);
+        a = (u[i] != 0.0);
+        b = (v[i] != 0.0);
+        num += (a != b);
+        denom += (a | b);
     }
-    return num / denom;
+    return denom != 0.0 ? num / denom : 0.0;
 }
 
 static NPY_INLINE double
 jaccard_distance_float(const float *u, const float *v, npy_intp n)
 {
+    /* Same as scipy.spatial.distance.jaccard (SciPy >= 1.2): inputs are
+       treated as boolean (nonzero is true), and two all-zero vectors have
+       distance 0. */
     double denom = 0.0, num = 0.0;
     npy_intp i;
+    int a, b;
 
     for (i = 0; i < n; i++) {
-        num += (u[i] != v[i]) & ((u[i] != 0.0) | (v[i] != 0.0));
-        denom += (u[i] != 0.0) | (v[i] != 0.0);
+        a = (u[i] != 0.0);
+        b = (v[i] != 0.0);
+        num += (a != b);
+        denom += (a | b);
     }
-    return num / denom;
+    return denom != 0.0 ? num / denom : 0.0;
 }
 
 

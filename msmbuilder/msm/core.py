@@ -7,6 +7,12 @@ from __future__ import print_function, division, absolute_import
 
 import collections
 
+try:
+    from collections import Iterable
+except ImportError:
+    # python3.10
+    from collections.abc import Iterable
+
 import numpy as np
 import scipy.linalg
 from scipy.sparse import csgraph, csr_matrix, coo_matrix
@@ -287,7 +293,7 @@ class _SampleMSMMixin(object):
         index.
 
         """
-        if not any([isinstance(seq, collections.Iterable)
+        if not any([isinstance(seq, Iterable)
                     for seq in sequences]):
             sequences = [sequences]
 
@@ -584,7 +590,7 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
-        _transitions.append(np.row_stack((from_states, to_states)))
+        _transitions.append(np.vstack((from_states, to_states)))
 
     transitions = np.hstack(_transitions)
     C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),

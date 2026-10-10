@@ -10,6 +10,7 @@ import traceback
 import numpy as np
 from os.path import join as pjoin
 from setuptools import setup, Extension, find_packages
+from Cython.Build import cythonize
 
 try:
     sys.dont_write_bytecode = True
@@ -70,9 +71,11 @@ Topic :: Scientific/Engineering
 Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS
-Programming Language :: Python :: 3.7
-Programming Language :: Python :: 3.8
-Programming Language :: Python :: 3.9
+Programming Language :: Python :: 3
+Programming Language :: Python :: 3.10
+Programming Language :: Python :: 3.11
+Programming Language :: Python :: 3.12
+Programming Language :: Python :: 3.13
 """
 
 if any(cmd in sys.argv for cmd in ('install', 'build', 'develop')):
@@ -80,7 +83,6 @@ if any(cmd in sys.argv for cmd in ('install', 'build', 'develop')):
         ('numpy',),
         ('scipy',),
         ('pandas',),
-        ('six',),
         ('mdtraj',),
         ('sklearn', 'scikit-learn'),
         ('numpydoc',),
@@ -191,6 +193,15 @@ extensions.append(
                             pjoin(HMMDIR, 'src/'),
                             pjoin(HMMDIR, 'cephes/')]))
 
+# Cython 3 does not search Extension.include_dirs for `include "..."`
+# statements, so pass them as include_path. Keep Cython 0.29 semantics.
+extensions = cythonize(
+    extensions,
+    include_path=sorted({d for e in extensions for d in e.include_dirs}),
+    compiler_directives={'language_level': 2,
+                         'legacy_implicit_noexcept': True},
+)
+
 write_version_py(VERSION, ISRELEASED, filename='msmbuilder/version.py')
 setup(name='msmbuilder2022',
       author='Robert McGibbon',
@@ -209,8 +220,22 @@ setup(name='msmbuilder2022',
                          'io_templates/*',
                          ],
       },
+      install_requires=[
+          'numpy>=1.23',
+          'mdtraj',
+          'scikit-learn',
+          'pandas',
+          'fastcluster',
+          'jinja2',
+          'pyyaml',
+          'tables',
+          'numpydoc',
+          'scipy',
+          'pyhmc @ git+https://github.com/bojunliu0818/pyhmc.git@bojunliu0818-dev',
+      ],
       entry_points={'console_scripts':
                         ['msmb = msmbuilder.scripts.msmb:main']},
+      python_requires='>=3.10',
       zip_safe=False,
       ext_modules=extensions,
       cmdclass={'build_ext': build_ext})

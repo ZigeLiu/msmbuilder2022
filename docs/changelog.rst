@@ -20,8 +20,13 @@ New Features
 Improvements
 ~~~~~~~~~~~~
 
+- Fixed dependency issue for python3.11/12 and added python3.11/12 in build-code workflow
+- Added pip install
+- Fixed dependency issue for python3.10
+- Fixed dependency issue for numpy
 - Added github action workflow for PR.
 - Fixed bugs in ``APM`` algorithm.
+- Added supports for ARM architecture CPU.
 
 
 v3.8 (April 26, 2017)

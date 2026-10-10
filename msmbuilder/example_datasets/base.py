@@ -12,8 +12,8 @@ from os.path import join
 from zipfile import ZipFile
 
 import numpy as np
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.request import urlopen
+from urllib.error import HTTPError
+from urllib.request import urlopen
 from sklearn.utils import check_random_state
 
 

@@ -50,7 +50,6 @@ import re
 import sys
 import textwrap
 
-from six import with_metaclass, PY2
 
 from . import version
 
@@ -228,7 +227,7 @@ class ClassProperty(property):
         return self.fget.__get__(None, owner)()
 
 
-class Command(with_metaclass(abc.ABCMeta, object)):
+class Command(metaclass=abc.ABCMeta):
     # Set _concrete to true for all final classes in the heirarchy
     _concrete = False
 
@@ -573,7 +572,7 @@ def _shim_argspec(argspec):
             self.parameters = OrderedDict()
 
     sig = Signature()
-    args, _, _, defaults = argspec
+    args, _, _, defaults, _, _, _ = argspec
     for arg in args:
         sig.parameters[arg] = Parameter(arg, Parameter.POSITIONAL_OR_KEYWORD)
 
@@ -596,7 +595,5 @@ def get_init_argspec(klass):
     """
     if hasattr(klass, '_init_argspec'):
         return _shim_argspec(klass._init_argspec())
-    elif PY2:
-        return _shim_argspec(inspect.getargspec(klass.__init__))
     else:
         return inspect.signature(klass.__init__)

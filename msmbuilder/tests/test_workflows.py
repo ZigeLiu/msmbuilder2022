@@ -5,8 +5,9 @@ import shlex
 import shutil
 import subprocess
 import tempfile
+from importlib.resources import files
 
-from pkg_resources import resource_filename
+import pytest
 
 
 class tempdir(object):
@@ -21,7 +22,7 @@ class tempdir(object):
 
 
 def shell_lines(resource):
-    fn = resource_filename('msmbuilder', resource)
+    fn = str(files('msmbuilder') / resource)
     buf = ''
     with open(fn) as f:
         for line in f:
@@ -45,22 +46,13 @@ def check_call(tokens):
         raise
 
 
-class workflow_tester(object):
-    def __init__(self, fn):
-        self.fn = fn
-        self.path = "tests/workflows/{}".format(fn)
-        self.description = "{}.test_{}".format(__name__, fn)
-
-    def __call__(self, *args, **kwargs):
-        with tempdir():
-            for line in shell_lines(self.path):
-                check_call(shlex.split(line, posix=False))
-
-
-def test_workflows():
-    for fn in [
-        'basic.sh',
-        'rmsd.sh',
-        'ghmm.sh',
-    ]:
-        yield workflow_tester(fn)
+@pytest.mark.parametrize("fn", [
+    'basic.sh',
+    'rmsd.sh',
+    'ghmm.sh',
+])
+def test_workflows(fn):
+    path = "tests/workflows/{}".format(fn)
+    with tempdir():
+        for line in shell_lines(path):
+            check_call(shlex.split(line, posix=False))

@@ -54,7 +54,7 @@ def get_atompair_indices(reference_traj, keep_atoms=None,
         bond_hashes = a_list + b_list * n
         pair_hashes = pair_indices[:, 0] + pair_indices[:, 1] * n
 
-        not_bonds = ~np.in1d(pair_hashes, bond_hashes)
+        not_bonds = ~np.isin(pair_hashes, bond_hashes)
 
         pair_indices = np.array([(a, b) for k, (a, b)
                                  in enumerate(pair_indices)

@@ -190,8 +190,10 @@ def build_project(args):
             print("Build failed!")
         sys.exit(1)
 
-    from distutils.sysconfig import get_python_lib
-    return get_python_lib(prefix=dst_dir, plat_specific=True), dst_dir
+    import sysconfig
+    site_dir = sysconfig.get_path('platlib',
+                                  vars={'base': dst_dir, 'platbase': dst_dir})
+    return site_dir, dst_dir
 
 
 if __name__ == "__main__":

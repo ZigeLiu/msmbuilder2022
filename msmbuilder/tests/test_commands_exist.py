@@ -4,6 +4,7 @@ import itertools
 import os
 import re
 import subprocess
+import pytest
 
 import msmbuilder.cluster
 import msmbuilder.decomposition
@@ -12,11 +13,15 @@ import msmbuilder.featurizer
 import msmbuilder.msm
 
 # numpy.testing.decorators removed in numpy >= 1.18
-try: 
-    from numpy.testing.decorators import skipif
-except ImportError:
-    from numpy.testing._private.decorators import skipif
+# try: 
+    # from numpy.testing.decorators import skipif
+# except ImportError:
+    # from numpy.testing._private.decorators import skipif
 
+# Compatibility issue (caused by FullArgSpec) for python3.11 solved.
+# import sys
+# if not sys.version_info < (3, 11):
+    # pytest.skip("skipping command tests for python>=3.11", allow_module_level=True)
 
 def get_commands_from_helptext():
     raw = subprocess.check_output(['msmb', '-h'], universal_newlines=True)
@@ -111,32 +116,18 @@ def assert_call(args):
                                stdout=noout) == 0
 
 
-class CheckCommandHelpWorks(object):
-    def __init__(self, modname, command):
-        self.command = command
-        self.description = "test_{}.{}_help_works".format(modname, command)
-
-    def __call__(self):
-        prefix = ['msmb']
-        postfix = ['-h']
-        assert_call(prefix + [self.command] + postfix)
+ALL_COMMANDS = list(get_all())
+ALL_COMMAND_IDS = ["{}.{}".format(modname, command)
+                   for modname, command in ALL_COMMANDS]
 
 
-class CheckCommandListed(object):
-    def __init__(self, modname, command):
-        self.command = command
-        self.description = "test_{}.{}_listed".format(modname, command)
-
-    def __call__(self):
-        err = '{} was not listed in `msmb -h`'.format(self.command)
-        assert self.command in HELP_COMMANDS, err
-
-@skipif(True) # takes a long time
-def test_all_help_works():
-    for modname, feat in get_all():
-        yield CheckCommandHelpWorks(modname, feat)
+@pytest.mark.skip(reason="takes a long time")
+@pytest.mark.parametrize("modname, command", ALL_COMMANDS, ids=ALL_COMMAND_IDS)
+def test_all_help_works(modname, command):
+    assert_call(['msmb', command, '-h'])
 
 
-def test_all_listed():
-    for modname, feat in get_all():
-        yield CheckCommandListed(modname, feat)
+@pytest.mark.parametrize("modname, command", ALL_COMMANDS, ids=ALL_COMMAND_IDS)
+def test_all_listed(modname, command):
+    err = '{} was not listed in `msmb -h`'.format(command)
+    assert command in HELP_COMMANDS, err

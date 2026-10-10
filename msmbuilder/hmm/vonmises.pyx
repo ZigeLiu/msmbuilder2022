@@ -107,6 +107,9 @@ cdef public class VonMisesHMM[object VonMisesHMMObject, type VonMisesHMMType]:
     cdef stats
     cdef reversible_type
     cdef _means_, _kappas_, _transmat_, _populations_, _fit_logprob_, _fit_time_
+    # Allow dynamic attributes; scikit-learn >= 1.8 sets e.g.
+    # `_parent_callback_ctx` on estimators inside a Pipeline.
+    cdef dict __dict__
 
     def __init__(self, n_states, n_init=10, n_iter=10, thresh=1e-2, reversible_type='mle', random_state=None):
         self.n_states = int(n_states)
@@ -127,11 +130,17 @@ cdef public class VonMisesHMM[object VonMisesHMMObject, type VonMisesHMMType]:
         # interact correctly with the `inspect` module.
 
         # any changes to the signature of __init__ need to be reflected here.
-        from inspect import ArgSpec
-        return ArgSpec(
+        #from inspect import ArgSpec
+        try:
+            from inspect import FullArgSpec
+        except ImportError:
+            # Python ≤3.10
+            from inspect import ArgSpec as FullArgSpec
+        return FullArgSpec(
         ['self', 'n_states', 'n_init', 'n_iter', 'thresh', 'reversible_type', 'random_state'],
           None, None,
-          [10, 10, 1e-2, 1e-2, 'mle', None]
+          [10, 10, 1e-2, 1e-2, 'mle', None],
+          None, None, None
         )
 
     @property
@@ -736,7 +745,7 @@ class inverse_mbessel_ratio(object):
 
         # DEBUGGING CODE
         # for debugging, the line below prints the error in the inverse
-        # by printing y - A(A^(-1)(y
+        # by printing y - A(A^(-1))y
         # print('spline inverse error', y - self.bessel_ratio(x))
 
         return x
