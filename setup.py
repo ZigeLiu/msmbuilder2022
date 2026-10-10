@@ -10,6 +10,7 @@ import traceback
 import numpy as np
 from os.path import join as pjoin
 from setuptools import setup, Extension, find_packages
+from Cython.Build import cythonize
 
 try:
     sys.dont_write_bytecode = True
@@ -191,6 +192,15 @@ extensions.append(
                             pjoin(HMMDIR, 'src/'),
                             pjoin(HMMDIR, 'cephes/')]))
 
+# Cython 3 does not search Extension.include_dirs for `include "..."`
+# statements, so pass them as include_path. Keep Cython 0.29 semantics.
+extensions = cythonize(
+    extensions,
+    include_path=sorted({d for e in extensions for d in e.include_dirs}),
+    compiler_directives={'language_level': 2,
+                         'legacy_implicit_noexcept': True},
+)
+
 write_version_py(VERSION, ISRELEASED, filename='msmbuilder/version.py')
 setup(name='msmbuilder2022',
       author='Robert McGibbon',
@@ -210,7 +220,7 @@ setup(name='msmbuilder2022',
                          ],
       },
       install_requires=[
-          'numpy<=1.26',
+          'numpy>=1.23',
           'mdtraj',
           'scikit-learn',
           'pandas',

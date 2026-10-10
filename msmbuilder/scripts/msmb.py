@@ -8,9 +8,14 @@ from ..version import version
 
 # Load external commands which register themselves
 # with entry point msmbuilder.commands
-from pkg_resources import iter_entry_points
+from importlib.metadata import entry_points
 
-for ep in iter_entry_points("msmbuilder.commands"):
+try:
+    _command_eps = entry_points(group="msmbuilder.commands")
+except TypeError:  # Python < 3.10
+    _command_eps = entry_points().get("msmbuilder.commands", [])
+
+for ep in _command_eps:
     external_command = ep.load()
     # Some groups start with numbers for ordering
     # Some start with descriptions e.g. "MSM"

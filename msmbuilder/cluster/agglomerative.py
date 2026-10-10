@@ -254,7 +254,7 @@ class _LandmarkAgglomerative(ClusterMixin, TransformerMixin):
                 raise ValueError("linkage {} is not supported".format(pfunc_name))
 
         pooled_distances = np.empty(len(X))
-        pooled_distances.fill(np.infty)
+        pooled_distances.fill(np.inf)
         labels = np.zeros(len(X), dtype=int)
 
         for i in range(self.n_clusters):

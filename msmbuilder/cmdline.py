@@ -597,6 +597,6 @@ def get_init_argspec(klass):
     if hasattr(klass, '_init_argspec'):
         return _shim_argspec(klass._init_argspec())
     elif PY2:
-        return _shim_argspec(inspect.getargspec(klass.__init__))
+        return _shim_argspec(inspect.getfullargspec(klass.__init__))
     else:
         return inspect.signature(klass.__init__)

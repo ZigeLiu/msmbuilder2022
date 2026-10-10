@@ -590,7 +590,7 @@ def _transition_counts(sequences, lag_time=1, sliding_window=True):
             from_states = mapping_fn(from_states)
             to_states = mapping_fn(to_states)
 
-        _transitions.append(np.row_stack((from_states, to_states)))
+        _transitions.append(np.vstack((from_states, to_states)))
 
     transitions = np.hstack(_transitions)
     C = coo_matrix((np.ones(transitions.shape[1], dtype=int), transitions),

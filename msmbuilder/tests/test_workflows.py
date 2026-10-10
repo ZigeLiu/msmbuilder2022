@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 
-from pkg_resources import resource_filename
+from importlib.resources import files
 
 
 class tempdir(object):
@@ -21,7 +21,7 @@ class tempdir(object):
 
 
 def shell_lines(resource):
-    fn = resource_filename('msmbuilder', resource)
+    fn = str(files('msmbuilder') / resource)
     buf = ''
     with open(fn) as f:
         for line in f:
