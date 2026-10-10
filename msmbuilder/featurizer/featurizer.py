@@ -1080,6 +1080,7 @@ class SASAFeaturizer(Featurizer):
 
     def describe_features(self, traj):
         """Return a list of dictionaries describing the SASA features.
+        It is recommended to run with OMP_NUM_THREADS=1 to avoid unexpected behavior.
 
         Parameters
         ----------

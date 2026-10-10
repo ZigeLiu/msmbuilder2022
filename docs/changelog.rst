@@ -3,6 +3,70 @@
 Changelog
 =========
 
+v3.9.1
+------
+
+This release adds support for Python 3.13 and NumPy 2, and ports the
+features and bug fixes that were merged into msmbuilder ``master`` after the
+3.8.0 release (references below are to msmbuilder pull requests).
+
+API Changes
+~~~~~~~~~~~
+
+- Python 3.10 or later is now required; Python 3.9 support was dropped.
+- NumPy 2 is now supported. The package is built against NumPy 2 and runs on
+  NumPy 1.23 or later. Building from source requires Cython 3 and
+  setuptools 69 or later.
+- ``six`` is no longer a dependency.
+- The ``jaccard`` metric in ``msmbuilder.libdistance`` now matches
+  ``scipy.spatial.distance.jaccard``: inputs are treated as boolean and two
+  all-zero vectors have distance 0. Results on non-binary data differ from
+  earlier versions.
+- ``PCCA.from_msm`` and ``PCCAPlus.from_msm`` accept ``objective_function``;
+  the default is ``crisp_metastability`` (msmbuilder gh-1036).
+
+New Features
+~~~~~~~~~~~~
+
+- Added ``FeatureSlicer`` to select a subset of a featurizer's output
+  (msmbuilder gh-1022).
+- Added ``msmbuilder.msm.validation.transmat_errorbar`` for transition matrix
+  error bars and bootstrapping (msmbuilder gh-1010, gh-1041).
+- Added ``AngleFeaturizer`` and the ``msmb AngleFeaturizer`` command, and an
+  ``offset`` option for ``KappaAngleFeaturizer`` (msmbuilder gh-1026).
+- Added a ``periodic`` option to ``ContactFeaturizer``, ``LigandFeaturizer``
+  and ``LigandContactFeaturizer`` (msmbuilder gh-1077).
+- Added ``SASAFeaturizer.describe_features`` (msmbuilder gh-1051).
+- Added ``msmbuilder.utils.convenience`` and ordered, unique
+  ``describe_features`` output (msmbuilder gh-1048).
+
+Improvements
+~~~~~~~~~~~~
+
+- Added Python 3.13 to the build and test workflows.
+- The reversible MLE transition matrix solver now stops after a maximum
+  number of iterations instead of looping forever (msmbuilder gh-1027).
+- Fixed ``GaussianHMM(init_algo="GMM")``, which failed because
+  ``sklearn.mixture.GMM`` was removed from scikit-learn.
+- ``GaussianHMM`` and ``VonMisesHMM`` work in ``sklearn.pipeline.Pipeline``
+  with scikit-learn 1.8 and later.
+- The ``msmb`` command no longer depends on ``pkg_resources``.
+- Replaced NumPy functions removed in NumPy 2 (``row_stack``, ``in1d``,
+  ``infty``, ``reshape(newshape=...)``).
+- Removed the remaining uses of ``distutils`` from the build scripts.
+- Fixed the shape values in the tICA "more features than data" warning
+  (msmbuilder gh-1015).
+- Fixed ``sample_dimension(scheme='edge')`` (msmbuilder gh-1043).
+- Fixed ``KernelTICA.score`` and ``partial_fit`` (msmbuilder gh-1024).
+- Fixed ``LigandFeaturizer`` errors (msmbuilder gh-1028).
+- ``FeatureSelector.which_feat`` now accepts a string and rejects a dict
+  (msmbuilder gh-1018).
+- Renamed the ``Muller`` example dataset export to ``MullerPotential``
+  (msmbuilder gh-1011).
+- Converted yield-based tests to ``pytest.mark.parametrize`` so they run
+  under current pytest.
+
+
 v3.9-dev
 --------
 
