@@ -8,7 +8,7 @@ from __future__ import print_function, division
 import numpy as np
 import scipy.linalg
 import scipy.optimize
-from six.moves import cStringIO
+from io import StringIO
 
 from . import _ratematrix
 from ._markovstatemodel import _transmat_mle_prinz
@@ -168,7 +168,7 @@ class ContinuousTimeMSM(BaseEstimator, _MappingTransformMixin,
         return self
 
     def summarize(self):
-        out = cStringIO()
+        out = StringIO()
         with printoptions(precision=4):
             print('n_states: %s' % self.n_states_, file=out)
             print(self.optimizer_state_.message, file=out)

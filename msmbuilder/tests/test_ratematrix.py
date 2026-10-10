@@ -367,20 +367,20 @@ def test_uncertainties_backward():
     sigma_pi = model.uncertainty_pi()
     sigma_K = model.uncertainty_K()
 
-    yield lambda: np.testing.assert_array_almost_equal(
+    np.testing.assert_array_almost_equal(
         sigma_ts, [9.508936, 0.124428, 0.117638])
-    yield lambda: np.testing.assert_array_almost_equal(
+    np.testing.assert_array_almost_equal(
         sigma_lambda,
         [1.76569687e-19, 7.14216858e-05, 3.31210649e-04, 3.55556718e-04])
-    yield lambda: np.testing.assert_array_almost_equal(
+    np.testing.assert_array_almost_equal(
         sigma_pi, [0.007496, 0.006564, 0.006348, 0.007863])
-    yield lambda: np.testing.assert_array_almost_equal(
+    np.testing.assert_array_almost_equal(
         sigma_K,
         [[0.000339, 0.000339, 0., 0.],
          [0.000352, 0.000372, 0.000122, 0.],
          [0., 0.000103, 0.000344, 0.000329],
          [0., 0., 0.00029, 0.00029]])
-    yield lambda: np.testing.assert_array_almost_equal(
+    np.testing.assert_array_almost_equal(
         model.ratemat_,
         [[-0.0254, 0.0254, 0., 0.],
          [0.02636, -0.029629, 0.003269, 0.],

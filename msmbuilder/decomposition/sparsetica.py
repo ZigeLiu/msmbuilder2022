@@ -8,7 +8,6 @@
 #-----------------------------------------------------------------------------
 
 from __future__ import print_function, division, absolute_import
-from six import PY2
 import numpy as np
 import scipy.linalg
 from .tica import tICA

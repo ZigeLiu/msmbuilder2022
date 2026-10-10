@@ -7,13 +7,19 @@ import string
 import shutil
 import subprocess
 import tempfile
+import logging
+from sysconfig import get_config_vars
 
-from distutils.dep_util import newer_group
-from distutils.core import Extension
-from distutils.errors import DistutilsExecError
-from distutils.ccompiler import new_compiler
-from distutils.sysconfig import customize_compiler, get_config_vars
-from distutils.command.build_ext import build_ext as _build_ext
+from setuptools import Extension
+from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.errors import ExecError, SetupError
+from setuptools.modified import newer_group
+# setuptools has no public API for compiler objects; use its vendored
+# copy of distutils (stdlib distutils was removed in Python 3.12).
+from setuptools._distutils.ccompiler import new_compiler
+from setuptools._distutils.sysconfig import customize_compiler
+
+log = logging.getLogger(__name__)
 
 
 def find_packages():
@@ -68,10 +74,10 @@ def check_dependencies(dependencies):
 
 class CompilerDetection(object):
     # Necessary for OSX. See https://github.com/mdtraj/mdtraj/issues/576
-    # The problem is that distutils.sysconfig.customize_compiler()
+    # The problem is that sysconfig.customize_compiler()
     # is necessary to properly invoke the correct compiler for this class
     # (otherwise the CC env variable isn't respected). Unfortunately,
-    # distutils.sysconfig.customize_compiler() DIES on OSX unless some
+    # sysconfig.customize_compiler() DIES on OSX unless some
     # appropriate initialization routines have been called. This line
     # has a side effect of calling those initialzation routes, and is therefor
     # necessary for OSX, even though we don't use the result.
@@ -128,7 +134,7 @@ class CompilerDetection(object):
                 cc.spawn([cc.cc])
             else:
                 cc.spawn([cc.compiler[0]] + ['-v'])
-        except DistutilsExecError:
+        except ExecError:
             pass
 
     def hasfunction(self, funcname, include=None, libraries=None, extra_postargs=None):
@@ -137,8 +143,9 @@ class CompilerDetection(object):
 from __future__ import print_function
 import os
 import json
-from distutils.ccompiler import new_compiler
-from distutils.sysconfig import customize_compiler, get_config_vars
+from sysconfig import get_config_vars
+from setuptools._distutils.ccompiler import new_compiler
+from setuptools._distutils.sysconfig import customize_compiler
 
 FUNCNAME = json.loads('%(funcname)s')
 INCLUDE = json.loads('%(include)s')
@@ -304,11 +311,10 @@ class build_ext(_build_ext):
             _build_ext.build_extension(self, ext)
 
     def build_static_extension(self, ext):
-        from distutils import log
 
         sources = ext.sources
         if sources is None or not isinstance(sources, (list, tuple)):
-            raise DistutilsSetupError(
+            raise SetupError(
                   ("in 'ext_modules' option (extension '%s'), " +
                    "'sources' must be present and must be " +
                    "a list of source filenames") % ext.name)

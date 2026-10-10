@@ -110,6 +110,9 @@ cdef public class GaussianHMM[object GaussianHMMObject, type GaussianHMMType]:
     cdef stats
     cdef reversible_type, n_lqa_iter, fusion_prior, vars_prior, vars_weight, init_algo
     cdef _means_, _vars_, _transmat_, _populations_, _fit_logprob_, _fit_time_
+    # Allow dynamic attributes; scikit-learn >= 1.8 sets e.g.
+    # `_parent_callback_ctx` on estimators inside a Pipeline.
+    cdef dict __dict__
 
     def __init__(self, n_states, n_init=10, n_iter=10,
                  n_lqa_iter=10, fusion_prior=1e-2, thresh=1e-2,
@@ -512,10 +515,14 @@ timescales: {timescales}
             small_dataset = np.vstack(sequences[0:min(len(sequences), self.n_hotstart)])
 
         if self.init_algo == "GMM":
-            mix = mixture.GMM(self.n_states, n_init=1, random_state=self.random_state)
+            # mixture.GMM was removed in scikit-learn 0.20. These settings
+            # match its defaults (diagonal covariances, min_covar=1e-3).
+            mix = mixture.GaussianMixture(self.n_states, covariance_type='diag',
+                                          reg_covar=1e-3, n_init=1,
+                                          random_state=self.random_state)
             mix.fit(small_dataset)
             self._means_ = mix.means_
-            self._vars_ = mix.covars_
+            self._vars_ = mix.covariances_
         else:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")

@@ -1,5 +1,4 @@
 from __future__ import print_function, division, absolute_import
-from six import PY2
 import numpy as np
 from msmbuilder.decomposition.tica import tICA
 from msmbuilder.decomposition._speigh import scdeflate

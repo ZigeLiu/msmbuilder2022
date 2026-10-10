@@ -71,9 +71,12 @@ Topic :: Scientific/Engineering
 Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS
-Programming Language :: Python :: 3.7
-Programming Language :: Python :: 3.8
+Programming Language :: Python :: 3
 Programming Language :: Python :: 3.9
+Programming Language :: Python :: 3.10
+Programming Language :: Python :: 3.11
+Programming Language :: Python :: 3.12
+Programming Language :: Python :: 3.13
 """
 
 if any(cmd in sys.argv for cmd in ('install', 'build', 'develop')):
@@ -81,7 +84,6 @@ if any(cmd in sys.argv for cmd in ('install', 'build', 'develop')):
         ('numpy',),
         ('scipy',),
         ('pandas',),
-        ('six',),
         ('mdtraj',),
         ('sklearn', 'scikit-learn'),
         ('numpydoc',),
@@ -229,12 +231,12 @@ setup(name='msmbuilder2022',
           'pyyaml',
           'tables',
           'numpydoc',
-          'six',
           'scipy',
           'pyhmc @ git+https://github.com/bojunliu0818/pyhmc.git@bojunliu0818-dev',
       ],
       entry_points={'console_scripts':
                         ['msmb = msmbuilder.scripts.msmb:main']},
+      python_requires='>=3.9',
       zip_safe=False,
       ext_modules=extensions,
       cmdclass={'build_ext': build_ext})
