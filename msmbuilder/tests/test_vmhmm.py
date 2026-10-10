@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import random
 from itertools import permutations
 
 import numpy as np
@@ -26,7 +25,7 @@ def test_code_works():
 
     sequences = featurizer.transform(trajectories)
 
-    hmm = VonMisesHMM(n_states=4, n_init=1)
+    hmm = VonMisesHMM(n_states=4, n_init=1, random_state=0)
     hmm.fit(sequences)
 
     assert len(hmm.timescales_ == 3)
@@ -38,17 +37,18 @@ def circwrap(x):
     return x - 2 * np.pi * np.floor(x / (2 * np.pi) + 0.5)
 
 
-def create_timeseries(means, kappas, transmat):
+def create_timeseries(means, kappas, transmat, random_state):
     """Construct a random timeseries based on a specified Markov model."""
     numStates = len(means)
-    state = random.randint(0, numStates - 1)
+    state = random_state.randint(numStates)
     cdf = np.cumsum(transmat, 1)
     numFrames = 1000
     X = np.empty((numFrames, 1))
     for i in range(numFrames):
-        rand = random.random()
+        rand = random_state.random_sample()
         state = (cdf[state] > rand).argmax()
-        X[i, 0] = circwrap(vonmises.rvs(kappas[state], means[state]))
+        X[i, 0] = circwrap(vonmises.rvs(kappas[state], means[state],
+                                        random_state=random_state))
     return X
 
 
@@ -91,31 +91,34 @@ def test_2_state():
     transmat = np.array([[0.7, 0.3], [0.4, 0.6]])
     means = np.array([[0.0], [2.0]])
     kappas = np.array([[4.0], [8.0]])
-    X = [create_timeseries(means, kappas, transmat) for i in range(10)]
+    # Fixed seeds: the tolerances below are tight enough that unseeded data
+    # fails about 1-2% of the time from sampling noise alone
+    rs = np.random.RandomState(0)
+    X = [create_timeseries(means, kappas, transmat, rs) for i in range(10)]
 
     # For each value of various options,
     # create a 2 state HMM and see if it is correct.
 
     for reversible_type in ('mle', 'transpose'):
         model = VonMisesHMM(n_states=2, reversible_type=reversible_type,
-                            thresh=1e-4, n_iter=30)
+                            thresh=1e-4, n_iter=30, random_state=0)
         model.fit(X)
         validate_timeseries(means, kappas, transmat, model, 0.1, 0.5, 0.05)
         assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
 
-# Potentially may fail (assertion error) in macos: re-run or skip.
 def test_3_state():
     transmat = np.array([[0.2, 0.3, 0.5], [0.4, 0.4, 0.2], [0.8, 0.2, 0.0]])
     means = np.array([[0.0], [2.0], [4.0]])
     kappas = np.array([[8.0], [8.0], [6.0]])
-    X = [create_timeseries(means, kappas, transmat) for i in range(20)]
+    rs = np.random.RandomState(0)
+    X = [create_timeseries(means, kappas, transmat, rs) for i in range(20)]
 
     # For each value of various options,
     # create a 3 state HMM and see if it is correct.
 
     for reversible_type in ('mle', 'transpose'):
         model = VonMisesHMM(n_states=3, reversible_type=reversible_type,
-                            thresh=1e-4, n_iter=30)
+                            thresh=1e-4, n_iter=30, random_state=0)
         model.fit(X)
         validate_timeseries(means, kappas, transmat, model, 0.1, 0.5, 0.1)
         assert abs(model.fit_logprob_[-1] - model.score(X)) < 0.5
@@ -139,7 +142,7 @@ def test_pickle():
     indices = topology.select('symbol C or symbol O or symbol N')
     featurizer = DihedralFeaturizer(['phi', 'psi'], trajectories[0][0])
     sequences = featurizer.transform(trajectories)
-    hmm = VonMisesHMM(n_states=4, n_init=1)
+    hmm = VonMisesHMM(n_states=4, n_init=1, random_state=0)
     hmm.fit(sequences)
     logprob, hidden = hmm.predict(sequences)
 
