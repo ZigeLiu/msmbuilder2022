@@ -146,35 +146,38 @@ def test_KappaFeaturizer_describe_features():
         assert (features[0][:, f_index] == feature_value.flatten()).all()
 
 
+def _single_frame():
+    # mdtraj's shrake_rupley is not reproducible across calls on multi-frame
+    # trajectories when built with OpenMP (a shared loop variable in its
+    # parallel region races, seen on Windows). With one frame only one
+    # thread does the work, so repeated calls agree exactly.
+    traj = trajectories[np.random.randint(len(trajectories))]
+    return traj[np.random.randint(traj.n_frames)]
+
+
 def test_SASAFeaturizer_describe_features_residue():
+    traj = _single_frame()
     feat = SASAFeaturizer(mode='residue')
-    rnd_traj = np.random.randint(len(trajectories))
-    features = feat.transform([trajectories[rnd_traj]])
-    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    features = feat.transform([traj])
+    df = pd.DataFrame(feat.describe_features(traj))
 
-    for f in range(25):
-        f_index = np.random.choice(len(df))
+    feature_value = md.geometry.sasa.shrake_rupley(traj, mode='residue')
 
+    for f_index in range(len(df)):
         resids_inds = df.iloc[f_index].resids
-
-        feature_value = md.geometry.sasa.shrake_rupley(trajectories[rnd_traj], mode='residue')
-
         assert (features[0][:, f_index] == feature_value[:, resids_inds].flatten()).all()
 
 
 def test_SASAFeaturizer_describe_features_atom():
+    traj = _single_frame()
     feat = SASAFeaturizer(mode='atom')
-    rnd_traj = np.random.randint(len(trajectories))
-    features = feat.transform([trajectories[rnd_traj]])
-    df = pd.DataFrame(feat.describe_features(trajectories[rnd_traj]))
+    features = feat.transform([traj])
+    df = pd.DataFrame(feat.describe_features(traj))
 
-    for f in range(25):
-        f_index = np.random.choice(len(df))
+    feature_value = md.geometry.sasa.shrake_rupley(traj, mode='atom')
 
+    for f_index in range(len(df)):
         atom_inds = df.iloc[f_index].atominds
-
-        feature_value = md.geometry.sasa.shrake_rupley(trajectories[rnd_traj], mode='atom')
-
         assert (features[0][:, f_index] == feature_value[:, atom_inds].flatten()).all()
 
 
