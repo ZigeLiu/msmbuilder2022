@@ -1,88 +1,91 @@
 .. _msmbuilder:
 
-MSMBuilder
-==========
+msmbuilder Introduction
+=======================
+
+``msmbuilder`` builds Markov state models (MSMs) and related kinetic models from
+molecular dynamics (MD) trajectories. Each subpackage covers one stage of that
+workflow, and every stage follows the scikit-learn estimator API, so the stages
+can be chained by hand or in an ``sklearn.pipeline.Pipeline``.
+
+The analysis pipeline
+---------------------
+
+.. code-block:: text
+
+    MD trajectories (mdtraj.Trajectory)
+       │  featurizer / feature_extraction      → per-frame feature vectors
+       │  feature_selection                    → combine or subset feature sets
+       │  preprocessing                        → scale, smooth, filter
+       │  decomposition                        → tICA / PCA: slow, low-dimensional coordinates
+       │  cluster                              → discrete microstate labels
+       │  msm / hmm                            → kinetic model (transition or rate matrix)
+       │  lumping                              → coarse-grain into macrostates
+       ▼  tpt                                  → pathways, committors, MFPTs, error bars
+
+The analysis tools
+---------------------
+
+.. list-table::
+   :header-rows: 1
+
+   * - Tool
+     - Tool candidates
+   * - :doc:`Featurizer <featurizer>`
+     - Turn trajectories into feature vectors (dihedrals, contacts, distances, RMSD, SASA, ...)
+   * - :doc:`feature_selection <feature_selection>`
+     - Combine featurizers, slice features, drop low-variance features
+   * - :doc:`preprocessing <preprocessing>`
+     - Scalers, normalizers and time-series smoothing filters that work on lists of trajectories
+   * - :doc:`decomposition <decomposition>`
+     - tICA (plain, sparse, kernel), PCA, ICA, factor analysis, Nyström kernel maps
+   * - :doc:`cluster <cluster>`
+     - K-means, k-centers, k-medoids, regular spatial, grid, landmark agglomerative, APM, ...
+   * - :doc:`msm <msm>`
+     - Discrete-time and continuous-time MSMs, Bayesian MSMs, implied timescales, validation tools
+   * - :doc:`lumping <lumping>`
+     - Coarse-graining microstates into macrostates: PCCA, PCCA+, BACE, MVCA
+   * - :doc:`tpt <tpt>`
+     - Transition path theory: committors, fluxes, top pathways, MFPTs, hub scores
+   * - :doc:`commands <commands>`
+     - The ``msmb`` command-line tool and its subcommands, such as ``msmb TemplateProject``
+
+Conventions shared by every estimator
+-------------------------------------
+
+- **Input is a list of sequences.** ``fit(sequences)`` takes a list where each
+  element is one trajectory: an ``mdtraj.Trajectory`` for featurizers, or a 2D
+  array of shape ``(n_frames_i, n_features)`` for everything downstream.
+  Trajectories may have different lengths. Keeping them separate matters
+  because transitions are only counted within a trajectory.
+- **partial_transform vs transform.** ``partial_transform(x)`` processes a
+  single sequence; ``transform(xs)`` maps it over a list and returns a list.
+- **summarize()** returns a text report for most fitted models.
 
 
-.. raw:: html
+Requirements
+------------
 
-    <h2 style="margin-top: -1em; font-size: 120%;">
-    Statistical models for Biomolecular Dynamics</h2>
+Python 3.10 or later and NumPy 1.23 or later (NumPy 2 is supported). Building
+from source needs Cython 3 and setuptools 69 or later, because several
+subpackages (``msm``, ``hmm``, ``cluster``, ``decomposition``, ``libdistance``,
+``example_datasets``) contain compiled extensions.
 
-MSMBuilder is an application and python library. It builds
-statistical models for high-dimensional time-series. The particular focus
-of the package is on the analysis of atomistic simulations of biomolecular
-dynamics such as protein folding and conformational change.
-
-To get started via `Anaconda Python <https://www.continuum.io/downloads>`_,
-use::
-
-    conda install -c omnia msmbuilder
-
-MSMBuilder includes algorithms for constructing dynamical models:
-
-- :ref:`featurization`
-- :ref:`feature_selection`
-- :ref:`preprocessing`
-- :ref:`decomposition`
-- :ref:`cluster`
-- :ref:`msm`
-- :ref:`hmm`
-- :ref:`ratematrix`
-
-As well as methods for analysis and validation of the models:
-
-- :ref:`gmrq`
-- :ref:`tpt`
-
-New users should check out:
-
-- :ref:`background`
-- :ref:`installation`
-- :ref:`tutorial`
-- :ref:`examples`
-- :ref:`faq`
-
-MSMBuilder is most effective as a library. Intermediate users should
-familiarize themselves with:
-
-- :ref:`apipatterns`
-- :ref:`datasets`
-- :ref:`changelog`
-
-
-MSMBuilder is developed by primarily by researchers at Stanford University,
-and we welcome contributions. The development all takes place on `Github
-<https://github.com/msmbuilder/msmbuilder>`_.  MSMBuilder is licensed under
-the GNU LGPL (v2.1 or later).
-
-
+For full analysis examples, see `analysis notebooks <https://github.com/xuhuihuang/GME_tutorials/tree/main/tutorials>`_
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :hidden:
 
-    background
-    installation
-    tutorial
-    examples/index
-    featurization
+    featurizer
     feature_selection
     preprocessing
     decomposition
     cluster
     msm
-    gmrq
+    lumping
     tpt
-    ratematrix
     hmm
-    datasets
-    io
-    apipatterns
-    plugins
-    faq
-    changelog
+    example_datasets
+    commands
     publications
-    contributing
-
-.. vim: tw=75

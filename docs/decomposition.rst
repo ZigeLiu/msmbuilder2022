@@ -1,157 +1,117 @@
 .. _decomposition:
 .. currentmodule:: msmbuilder.decomposition
 
-Decomposition
-=============
+msmbuilder.decomposition
+========================
 
-tICA
-----
+Source: `msmbuilder/decomposition/ <https://github.com/msmbuilder/msmbuilder2022/tree/main/msmbuilder/decomposition>`__ 
 
+Dimensionality reduction for feature trajectories. The main tool is
+**tICA** (time-lagged independent component analysis), which finds the linear
+combinations of features that decorrelate most slowly. Projecting onto the
+first few tICA components before clustering gives MSMs that resolve the slow
+dynamics much better than raw features.
 
-.. figure:: _static/tica_vs_pca.png
-   :align: right
+All estimators take a list of 2D arrays (one per trajectory) and return a
+list of 2D arrays with ``n_components`` columns.
 
-   tICA compared to PCA (courtesy of C. R. Schwantes)
+tICA family
+-----------
 
+.. list-table::
+   :header-rows: 1
 
-Time-structure independent components analysis (tICA) is a method for
-finding the slowest-relaxing degrees of freedom in a time series data set
-which can be formed from linear combinations from a set of input degrees of
-freedom.
+   * - Class
+     - Description
+   * - ``tICA(n_components=None, lag_time=1, shrinkage=None, kinetic_mapping=False, commute_mapping=False)``
+     - Standard tICA. Solves the generalized eigenproblem between the time-lagged correlation matrix and the covariance matrix
+   * - ``SparseTICA(n_components=None, lag_time=1, rho=0.01, kinetic_mapping=False, epsilon=1e-06, shrinkage=None, tolerance=1e-06, maxiter=10000, verbose=False)``
+     - tICA with an L1 penalty (``rho``) so each component uses only a few features
+   * - ``KSparseTICA(n_components=None, lag_time=1, k=5, shrinkage=None, kinetic_mapping=True)``
+     - Sparse tICA where each eigenvector has at most ``k`` nonzero entries
+   * - ``KernelTICA(n_components=None, lag_time=1, kernel='rbf', gamma=None, degree=3, coef0=1.0, stride=1, landmarks=None, ...)``
+     - Nonlinear tICA using a Nyström kernel approximation. Landmarks are taken every ``stride`` frames unless given explicitly
 
-tICA can be used as a dimensionality reduction method and, in that capacity,
-is somewhat similar to PCA.  However whereas PCA finds high-variance
-linear combinations of the input degrees of freedom, tICA finds
-high-autocorrelation linear combinations of the input degrees of freedom.
+Key options
+~~~~~~~~~~~
 
-The tICA method has one obvious drawback: its solution is
-a linear combination of all input degrees of freedom, and their
-relative weights are typically non-zero. This makes each independent component
-difficult to interpret in an algorithmic fashion because
-it could comprise hundreds or thousands of different metrics.
-Because an important property of reaction coordinates is their
-role in facilitating physical interpretation of the underlying molecular
-system, we consider it desirable to reduce the number of
-explicitly used variables. SparseTICA [#f2]_ attempts to resolve this
-interpretability issue by using a sparse approximation to
-the eigenvalue problem found in tICA and returning independent components
-composed of only the most relevant degrees of freedom.
+- **lag_time** (in frames) sets which timescale tICA looks for. Use a lag
+  comparable to the MSM lag time you plan to use.
+- **shrinkage**: covariance shrinkage intensity between 0 and 1. ``None``
+  (default) estimates it with the Rao–Blackwellized Ledoit–Wolf formula,
+  which helps when there are many features and few frames.
+- **kinetic_mapping=True** scales each projected coordinate by its
+  eigenvalue, so Euclidean distances in tICA space approximate kinetic
+  distances. Recommended before clustering.
+- **commute_mapping=True** scales by ``sqrt(timescale / 2)`` instead, giving
+  commute distances. Only available on :class:`~msmbuilder.decomposition.tICA` (not on :class:`~msmbuilder.decomposition.SparseTICA`).
 
-Another limitation of tICA is that it is constrained to finding linear
-correlations between input coordinates. The KernelTICA method [#f5]_
-provides a natural extension to nonlinear functions by utilizing the kernel
-trick and represents a substantial improvement in estimating the
-eigenfunctions of the transfer operator directly.
+Fitted attributes (tICA)
+~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. list-table::
+   :header-rows: 1
 
-PCA
----
+   * - Attribute
+     - Meaning
+   * - ``components_``
+     - Shape ``(n_components, n_features)``: the projection vectors
+   * - ``eigenvalues_``, ``eigenvectors_``
+     - Full generalized eigensystem, sorted slowest first
+   * - ``timescales_``
+     - Implied timescales ``-lag_time / ln(eigenvalue)``, in frames
+   * - ``means_``, ``covariance_``, ``offset_correlation_``
+     - Accumulated statistics
+   * - ``score_``
+     - GMRQ score on the training data
 
-Principal component analysis (PCA) is a method for finding the most
-highly varying degrees of freedom in a data set (not necessarily a time
-series). PCA is useful as a dimensionality reduction method.
+:class:`~msmbuilder.decomposition.tICA` also supports ``partial_fit(sequence)`` to accumulate statistics one
+trajectory at a time, and ``score(sequences)`` to compute the GMRQ
+(generalized matrix Rayleigh quotient) on held-out data for cross-validation.
 
-
-
-Algorithms
-----------
-
-.. autosummary::
-    :toctree: _decomposition/
-
-    tICA
-    SparseTICA
-    PCA
-
-Theory
-------
-
-PCA
-~~~
-
-PCA tries to find projection vectors that maximize their
-explained variance, subject to them being uncorrelated and having length
-one. In the end, these maximal variance projections correspond to the
-solutions of the following eigenvalue problem:
-
-.. math:: \Sigma v = \lambda v
-
-where :math:`\Sigma` is the covariance matrix given by:
-
-.. math:: \Sigma_{ij} = \mathbb{E}\Big[ X_i(t) X_j(t) \Big]
-
-The problem with using PCA to define a reduced space for biomolecular
-dynamics, however, is
-that high-variance degrees of freedom need not be slow (for instance
-consider a floppy protein tail that varies wildly vs. a single dihedral
-angle that is required to rotate for a protein to fold). What we really
-want is to design projections that can best differentiate between slowly
-equilibrating populations, which is precisely where tICA comes in.
-
-
-tICA
-~~~~
-
-In tICA, the goal is to find projection vectors that maximize their
-autocorrelation function, subject to them being uncorrelated and having
-unit variance. It is easy to show [#f1]_ that the solution to the tICA
-problem are the solutions to this generalized eigenvalue problem (which is
-closely related to the PCA eigenvalue problem):
-
-.. math:: C^{(\Delta t)} v = \lambda \Sigma v
-
-where :math:`C^{(\Delta t)}` is the time lag correlation matrix defined
-by:
-
-.. math:: C^{(\Delta t)}_{ij} = \mathbb{E}\Big[ X_i(t) X_j(t+\Delta t) \Big]
-
-Given this solution, we can use the tICA method to define a reduced
-dimensionality representation of each :math:`\mathbf{X}(t)` by
-projecting the vector onto the slowest :math:`n` tICs.
-
-Hyperparameters
-~~~~~~~~~~~~~~~
-
-There are two parameters introduced in the tICA method. The first is
-:math:`\Delta t`, which is used in the calculation of the time-lag
-correlation matrix (:math:`C^{(\Delta t)}`). The second is :math:`n`,
-which is the number of tICs to project onto when calculating distances
-between conformations. You can use :ref:`the GMRQ score<gmrq>` to choose
-these parameters. Typical values are of order nanoseconds and tens,
-respectively.
-
-Drawbacks
-~~~~~~~~~
-
-Since part of the process of using tICA is a dimensionality reduction,
-there is always the opportunity to throw out important pieces of
-information. By throwing out the faster degrees of freedom, we can better
-estimate the slowest timescales; but this comes with the trade-off of not
-representing the fast timescales correctly.
-
-
-Combination with MSM
+Other decompositions
 --------------------
 
-While the tICs are themselves approximations to the dominant eigenfunctions
-of the propagator / transfer operator, the approach taken in [#f1]_ and
-[#f2]_ is to "stack" tICA with :ref:`MSMs<msm>`. For example, in [#f2]_,
-Perez-Hernandez et al.  first measured the 66 atom-atom distances between a
-set of atoms in each frame of their MD trajectories, and then used tICA to
-find the slowest 1, 4, and 10 linear combinations of these degrees of
-freedom and transform the 66-dimensional dataset into a 1, 4, or
-10-dimensional dataset. Then, they applied
-:class:`~msmbuilder.cluster.KMeans` to the resulting data and built an MSM.
+scikit-learn estimators wrapped to accept lists of sequences:
 
-.. todo: Link to example notebook.
+.. list-table::
+   :header-rows: 1
 
-References
-----------
+   * - Class
+     - Description
+   * - :class:`~msmbuilder.decomposition.PCA`, :class:`~msmbuilder.decomposition.SparsePCA`, :class:`~msmbuilder.decomposition.MiniBatchSparsePCA`
+     - Principal component analysis (no time information)
+   * - :class:`~msmbuilder.decomposition.FastICA`
+     - Independent component analysis
+   * - :class:`~msmbuilder.decomposition.FactorAnalysis`
+     - Factor analysis
 
-.. [#f1] Schwantes, Christian R., and Vijay S. Pande. `Improvements in Markov State Model Construction Reveal Many Non-Native Interactions in the Folding of NTL9 <http://dx.doi.org/10.1021/ct300878a>`_ J. Chem Theory Comput. 9.4 (2013): 2000-2009.
-.. [#f2] Perez-Hernandez, Guillermo, et al. `Identification of slow molecular order parameters for Markov model construction <http://dx.doi.org/10.1063/1.4811489>`_ J Chem. Phys (2013): 015102.
-.. [#f3] Naritomi, Yusuke, and Sotaro Fuchigami. `Slow dynamics in protein fluctuations revealed by time-structure based independent component analysis: The case of domain motions <http://dx.doi.org/10.1063/1.3554380>`_ J. Chem. Phys. 134.6 (2011): 065101.
-.. [#f4] McGibbon, R. T. & Pande, V. S. `Identification of simple reaction coordinates from complex dynamics <http://arxiv.org/abs/1602.08776>`_ ArXiv 16 (2016).
-.. [#f5] Schwantes, Christian R., and Vijay S. Pande. `Modeling Molecular Kinetics with tICA and the Kernel Trick <http://dx.doi.org/10.1021/ct5007357>`_ J. Chem Theory Comput. 11.2 (2015): 600–608.
+In ``decomposition.kernel_approximation`` (not re-exported from the package):
 
-.. vim: tw=75
+.. list-table::
+   :header-rows: 1
+
+   * - Class
+     - Description
+   * - :class:`~msmbuilder.decomposition.kernel_approximation.Nystroem`
+     - scikit-learn's Nyström kernel map, adapted to lists of sequences
+   * - ``LandmarkNystroem(landmarks=None, ...)``
+     - Nyström map with user-supplied landmark frames; used by :class:`~msmbuilder.decomposition.KernelTICA`
+
+Example
+-------
+
+.. code-block:: python
+
+    from msmbuilder.example_datasets import AlanineDipeptide
+    from msmbuilder.featurizer import DihedralFeaturizer
+    from msmbuilder.decomposition import tICA
+
+    trajs = AlanineDipeptide().get().trajectories
+    X = DihedralFeaturizer().transform(trajs)
+
+    tica = tICA(n_components=2, lag_time=10, kinetic_mapping=True)
+    Y = tica.fit_transform(X)          # list of (n_frames, 2) arrays
+    print(tica.timescales_)            # in frames
+    print(tica.summarize())
+

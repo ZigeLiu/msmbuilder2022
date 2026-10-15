@@ -1,119 +1,147 @@
 .. _msm:
 .. currentmodule:: msmbuilder.msm
 
-Markov state models (MSMs)
-==========================
+msmbuilder.msm
+==============
 
-Markov state models (MSMs) are a class of models for modeling the
-long-timescale dynamics of molecular systems. They model the dynamics of a
-system as a series of memoryless, probabilistic jumps between a set of
-states. Practically, the model consists of (1) a set of conformational
-states, and (2) a matrix of transition probabilities between each pair of
-states.
+Source: `msmbuilder/msm/ <https://github.com/msmbuilder/msmbuilder2022/tree/main/msmbuilder/msm>`__ 
 
-In MSMBuilder, you can use :class:`MarkovStateModel` to build MSMs from
-"labeled" trajectories -- that is, sequences of integers that are the
-result of :ref:`clustering<cluster>`.
+Markov state models (MSMs) are a class of models that describe the dynamics 
+of a system by discretizing its conformational space into a set of states and 
+modeling the transitions between them. The input to an MSM is a set of trajectories 
+(the label sequences produced by :ref:`cluster <cluster>`).
+State labels can be any orderable values since models map them to internal
+indices ``0 .. n_states_ - 1``.
 
-Algorithms
-----------
+Models
+------
 
-.. autosummary::
-    :toctree: _msm/
+.. list-table::
+   :header-rows: 1
 
-    MarkovStateModel
-    BayesianMarkovStateModel
+   * - Class
+     - Description
+   * - ``MarkovStateModel(lag_time=1, n_timescales=None, reversible_type='mle', ergodic_cutoff='on', prior_counts=0, sliding_window=True, verbose=True)``
+     - Discrete-time MSM. The standard choice
+   * - ``BayesianMarkovStateModel(lag_time=1, n_samples=100, n_steps=0, n_chains=None, reversible=True, ...)``
+     - Samples transition matrices from the posterior with MCMC (Metzner sampler); gives uncertainty on every derived quantity
+   * - ``ContinuousTimeMSM(lag_time=1, n_timescales=None, ergodic_cutoff=1, sliding_window=True, guess='log')``
+     - Reversible rate-matrix (master equation) model fitted by maximum likelihood
+   * - ``BayesianContinuousTimeMSM(lag_time=1, n_samples=2000, n_steps=25, epsilon=0.0005, ...)``
+     - Posterior sampling of rate matrices with Hamiltonian Monte Carlo
 
-Maximum Likelihood and Bayesian Estimation
-------------------------------------------
+Important MarkovStateModel parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are two steps in constructing an MSM
+- **lag_time** (frames): transitions are counted between frames ``t`` and
+  ``t + lag_time``. Choose it where implied timescales have leveled off.
+- **reversible_type**: ``'mle'`` (maximum-likelihood reversible estimate,
+  default), ``'transpose'`` (symmetrize the counts) or ``None`` (non-reversible).
+- **ergodic_cutoff**: states not in the largest strongly connected set are
+  trimmed. ``'on'`` uses the smallest count threshold, a number sets the
+  threshold, ``'off'`` or ``0`` disables trimming. Trimmed states are absent from
+  ``mapping_``.
+- **prior_counts**: pseudocounts added to every element of the count matrix
+  after trimming.
+- **sliding_window**: count transitions starting at every frame (``True``) or
+  only every ``lag_time`` frames (``False``).
 
-#. Count the number of observed transitions between states. That is,
-   construct :math:`\mathbf{C}` such that :math:`C_{ij}` is the number of
-   observed transitions from state :math:`i` at time :math:`t` to state
-   :math:`j` at time :math:`t+\tau`, summed over all times :math:`t`.
+Fitted attributes
+~~~~~~~~~~~~~~~~~
 
-#. Estimate the transition probability matrix, :math:`\mathbf{T}`
+.. list-table::
+   :header-rows: 1
 
-   .. math ::
-       T_{ij} = P( s_{t+\tau} = j | s_t = i)
-    
-   where :math:`S = (s_t)` is a trajectory in state-index space of length
-   :math:`N`, and :math:`s_t \in \{1, \ldots, k\}` the state-index of the
-   trajectory at time :math:`t`.
+   * - Attribute
+     - Meaning
+   * - ``n_states_``
+     - Number of states kept after ergodic trimming
+   * - ``mapping_``
+     - Dict from input label to internal index
+   * - ``countsmat_``, ``transmat_``
+     - Count and transition matrices, shape ``(n_states_, n_states_)``
+   * - ``populations_``
+     - Stationary distribution
+   * - ``timescales_``
+     - Implied timescales ``-lag_time / ln(λ_i)``, in frames of the input data
+   * - ``eigenvalues_``, ``left_eigenvectors_``, ``right_eigenvectors_``
+     - Eigensystem of ``transmat_``
+   * - ``score_``
+     - GMRQ on the training data
 
-The probability that a given transition probability matrix would generate
-some observed trajectory (the likelihood) is
+Methods
+~~~~~~~
 
-.. math ::
-  \mathcal{L}(\mathbf{T}) = P(S | \mathbf{T}) =
-  \prod_{t=0}^{N-\tau} T_{s_t, s_{t+\tau}} = \prod_{i,j}^{k} T_{ij}^{C_{ij}}.
+.. list-table::
+   :header-rows: 1
 
-Assuming a prior distribution on :math:`T` of the form
-:math:`P(T)=\prod_{ij} T_{ij}^{B_{ij}}`, we then have a posterior
-distribution
+   * - Method
+     - Description
+   * - ``transform(sequences, mode='clip')``
+     - Map labels to internal indices. ``'clip'`` drops trimmed states (splitting trajectories if needed); ``'fill'`` replaces them with NaN
+   * - ``inverse_transform(sequences)``
+     - Map internal indices back to the original labels
+   * - ``eigtransform(sequences, right=True, mode='clip')``
+     - Project trajectories onto the dynamical eigenvectors
+   * - ``score(sequences)``
+     - GMRQ of the model on new data, for cross-validation
+   * - ``score_ll(sequences)``
+     - Log-likelihood of sequences under the model
+   * - ``sample_discrete(state=None, n_steps=100, random_state=None)``
+     - Generate a synthetic state trajectory. ``sample()`` is a deprecated alias
+   * - ``draw_samples(sequences, n_samples)``
+     - Pick ``(trajectory, frame)`` pairs from each state
+   * - ``uncertainty_eigenvalues()``, ``uncertainty_timescales()``
+     - Analytic standard errors
+   * - ``summarize()``
+     - Text report
 
-.. math ::
-   P(\mathbf{T} | S) \propto \prod_{i,j}^{k} T_{ij}^{B_{ij} + C_{ij}}.
+Functions
+---------
 
+.. list-table::
+   :header-rows: 1
 
-MSMBuilder implements two MSM estimators.
+   * - Function
+     - Description
+   * - ``implied_timescales(sequences, lag_times, n_timescales=10, msm=None, n_jobs=1)``
+     - Fit one MSM per lag time and return an array of timescales, shape ``(len(lag_times), n_timescales)``, in frames. Plot it to choose the lag time
 
-- :class:`MarkovStateModel` performs maximum likelihood estimation.  It
-  estimates a single transition matrix, :math:`\mathbf{T}`, to maximimize
-  :math:`\mathcal{L}(\mathbf{T})`.
+Validation (``msm.validation``)
+-------------------------------
 
-- :class:`BayesianMarkovStateModel` uses Metropolis Markov chain Monte
-  Carlo to (approximately) draw a sample of transition matrices from the
-  posterior distribution :math:`P(\mathbf{T} | S)`. This sampler is
-  described in Metzner et al. [#f5]_ This can be used to estimate the
-  sampling uncertainty in functions of the transition matrix (e.g.
-  relaxation timescales).
+.. list-table::
+   :header-rows: 1
 
-.. note::
+   * - Name
+     - Description
+   * - ``BootStrapMarkovStateModel(n_samples=10, n_procs=None, msm_args=None, save_all_models=False)``
+     - Refits MSMs on trajectories resampled with replacement. Gives means, standard deviations and standard errors of populations (``mapped_populations_mean_``, ``_std_``, ``_sem_``) and train/test GMRQ scores
+   * - ``transmat_errorbar.create_perturb_params(countsmat, transmat=None)``
+     - Returns the transition matrix and the standard error of each element, treating each row's counts as Bernoulli trials
+   * - ``transmat_errorbar.perturb_tmat(transmat, scale)``
+     - Draws a transition matrix by perturbing each element with Gaussian noise of that standard error, then renormalizing rows. Use it repeatedly to bootstrap any derived quantity
 
-   The uncertainty in the transition matrix (and functions of the
-   transition matrix) that can be estimated from
-   :class:`BayesianMarkovStateModel` do not **fully** account for all
-   sources of error. In particular, the discretization induced by
-   clustering produces a negative bias on  the eigenvalues of the
-   transition matrix -- they asymptotically underestimate the eigenvalues
-   of the propagator / transfer operator in the limit of infinite sampling.
-   [#f6]_ See section 3D (Quantifying the discretization error) of Prinz et
-   al. for more discussion on the discretization error. [#f1]_
+Example
+-------
 
+.. code-block:: python
 
-Tradeoffs and Parameter Selection
----------------------------------
+    import numpy as np
+    from msmbuilder.example_datasets import AlanineDipeptide
+    from msmbuilder.featurizer import DihedralFeaturizer
+    from msmbuilder.cluster import MiniBatchKMeans
+    from msmbuilder.msm import MarkovStateModel, implied_timescales
+    from msmbuilder.msm.validation.transmat_errorbar import create_perturb_params, perturb_tmat
 
-The most important tradeoff with MSMs is a `bias-variance dilemma
-<http://en.wikipedia.org/wiki/Bias%E2%80%93variance_dilemma>`_ on the
-number of states. We know analytically that the expected value of the
-relaxation timescales is below the true value when using a finite number of
-states, and that the magnitude of this bias decreases as the number of
-states goes up. On the other hand, the statistical error in the MSM
-(variance) goes up as the number of states increases with a fixed data set,
-because there are fewer transitions (data) per element of the transition
-probability matrix.
+    trajs = AlanineDipeptide().get().trajectories
+    X = DihedralFeaturizer().transform(trajs)
+    labels = MiniBatchKMeans(n_clusters=50, random_state=0).fit_transform(X)
 
-There are no existing algorithms in the MSM literature which fully balance
-these competing sources of error in an automatic and practical way,
-although some partially satisfactory algorithms are available. [#f3]_
-[#f4]_
+    its = implied_timescales(labels, lag_times=[1, 5, 10, 20], n_timescales=3)
 
-.. todo: talk about lag time
+    msm = MarkovStateModel(lag_time=10, verbose=False).fit(labels)
+    print(msm.summarize())
 
-.. todo: analysis page
-
-
-References
-----------
-.. [#f1] Prinz, J.-H., et al. `Markov models of molecular kinetics: Generation and validation <http://dx.doi.org/10.1063/1.3565032>`_ J. Chem. Phys. 134.17 (2011): 174105.
-.. [#f2] Pande, V. S., K. A. Beauchamp, and G. R. Bowman. `Everything you wanted to know about Markov State Models but were afraid to ask <http://dx.doi.org/10.1016/j.ymeth.2010.06.002>`_ Methods 52.1 (2010): 99-105.
-.. [#f3] McGibbon, R. T., C. R. Schwantes, and Vijay S. Pande. `Statistical Model Selection for Markov Models of Biomolecular Dynamics. <http://dx.doi.org/10.1021/jp411822r>`_ J. Phys. Chem. B (2014).
-.. [#f4] Kellogg, E. H., O. F. Lange, and D. Baker. `Evaluation and optimization of discrete state models of protein folding. <http://dx.doi.org//10.1021/jp3044303>`_ J. Phys. Chem. B 116.37 (2012): 11405-11413.
-.. [#f5] Metzner, P., F. Noe, and C. Schutte. `Estimating the sampling error: Distribution of transition matrices and functions of transition matrices for given trajectory data. <http://journals.aps.org/pre/abstract/10.1103/PhysRevE.80.021106>`_ Phys. Rev. E 80.2 (2009): 021106.
-.. [#f6] Nuske, F., et al. `Variational approach to molecular kinetics. <http://pubs.acs.org/doi/abs/10.1021/ct4009156>`_ J. Chem. Theory Comput.10.4 (2014): 1739-1752.
-
-.. vim: tw=75
+    T, scale = create_perturb_params(msm.countsmat_)
+    T_sample = perturb_tmat(T, scale)            # one bootstrap draw
